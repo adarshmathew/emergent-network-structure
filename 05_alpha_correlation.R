@@ -16,3 +16,4 @@ aggreg %>%
     scale_x_continuous(lim=c(-1,1))+
     nice_theme()
 
+81+108+63+21

@@ -1,4 +1,7 @@
-#source("00c_data_prep_MERGE.R")
+if(!exists("data_loaded")){
+  source("00c_data_prep_MERGE.R")
+}
+
 require(lme4)
 require(RColorBrewer)
 
@@ -35,9 +38,11 @@ mod.replication = aggreg %>%
   )
 
 
+
+
+
 summary(mod.reanalysis)
 summary(mod.replication)
-summary(mod.combined)
 
 alpha_val = mean(aggreg$alpha_cor[aggreg$communication=="Discussion"], na.rm=T)
 

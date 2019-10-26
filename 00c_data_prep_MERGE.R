@@ -24,12 +24,11 @@ d = rbind(
     #, alpha = ifelse(alpha<0, 0, alpha) 
     #, alpha = ifelse(alpha>1, 1, alpha)
   
-    , stubborn_cent = alpha
+    , stubborn_cent = 1-alpha
     , err = abs(pre_influence - truth)
     , err_norm = abs(err/truth)
     #, log_err_norm = log(pre_influence/truth)
   )
-
 
 chat_stats = d %>%
   group_by(task, trial, communication, analysis, dataset) %>%
@@ -44,24 +43,23 @@ chat_stats = d %>%
     , count_in_convo = sum(count_words!=0)
   )
 
-aggreg = d %>% 
+d_valid = d %>%
+  ### get accuracy stats only for people answering at both time 1 and 2
   subset(!is.na(pre_influence) & !is.na(post_influence)) %>%
-  group_by(task) %>%
-  mutate(
-    mu1 = mean(pre_influence)
-    , toward_truth = ifelse((pre_influence < mean(pre_influence) & mu1 <= truth) | (pre_influence > mu1 & mu1 >= truth), "Away","Toward")
-    , question_phi = mean(toward_truth=="Toward")
-  ) %>% 
-  ungroup() %>%
   group_by(task, trial, communication, analysis, dataset) %>%
   mutate(
     mu1 = mean(pre_influence)
     , toward_truth = ifelse((pre_influence < mean(pre_influence) & mu1 <= truth) | (pre_influence > mu1 & mu1 >= truth), "Away","Toward")
-  )  %>%
-  ### get accuracy stats only for people answering at both time 1 and 2
+  )
+
+aggreg =  d_valid %>%
+  group_by(task) %>%
+  mutate(
+    sd_pool = sd(pre_influence)
+  ) %>%
+  group_by(task, trial, communication, analysis, dataset) %>%
   summarize(
     truth=unique(truth)
-    , question_phi = unique(question_phi)
     , N_valid = length(pre_influence)
     
     ## calc mean
@@ -97,13 +95,24 @@ aggreg = d %>%
     , total_words = sum(count_words)
     , count_in_convo = sum(count_words!=0)
     
+    ### extra stuff
+    , sd = sd(pre_influence)
+    , sd_pool = unique(sd_pool)
+    , change_mu_norm = (mu2-mu1)/sd
+    
+    ### is the most talkative person toward truth?
+    #, central_twd_truth = ifelse(sum(!is.na(count_chat))==0, NA, toward_truth[which.max(count_chat)]=="Toward")
+    , central_twd_truth = ifelse(sum(!is.na(count_chat))==0, NA, toward_truth[!is.na(toward_truth)][which.max(count_chat[!is.na(toward_truth)])]=="Toward")
+    , central_pre_influence = ifelse(sum(!is.na(count_chat))==0, NA, pre_influence[which.max(count_chat)])
+    , central_diff_from_mu =  (central_pre_influence-mu1)/sd
   ) %>%
   mutate(
-    prop_toward_round=round(prop_toward,1)
+     prop_toward_round=round(prop_toward,1)
     , improve=(change_err_mu<0)*1
     , majority = ifelse(prop_toward>0.5, "Toward", NA)
     , majority = ifelse(prop_toward<0.5, "Away", majority)
     , majority = ifelse(prop_toward==0.5, "Split", majority)
+    
   )
 
 
@@ -135,4 +144,24 @@ ag_rep = subset(aggreg, analysis=="replication") %>%
     task = as.character(task)
   )
 
+d_rep = subset(d, analysis=="replication") %>%
+  ungroup %>%
+  mutate(
+    task = as.character(task)
+  )
+
+
 ag_gurc = subset(aggreg, analysis=="reanalysis" & communication=="Discussion")
+
+
+tidy_table <- function(df, name1, name2){
+  table(eval(substitute(name1), df),
+        eval(substitute(name2), df)
+  )
+}
+
+
+tidy_table_univariate <- function(df, name){
+  table(eval(substitute(name), df))
+}
+

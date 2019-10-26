@@ -1,4 +1,6 @@
-source("00c_data_prep_MERGE.R")
+if(!exists("data_loaded")){
+  source("00c_data_prep_MERGE.R")
+}
 require(lme4)
 
 
@@ -64,7 +66,7 @@ stargazer::stargazer(mod1, mod2, mod3, mod4
           , column.separate=c(2,2)
           , dep.var.labels.include=F
           , dep.var.caption="Binomial outcome:  mean closer to truth"
-          , covariate.labels = c("<p>&phi;</p>","Stub./Acc. Corr.")
+          , covariate.labels = c("<p>&phi;</p>","Stub./Err. Corr.")
           , star.cutoffs=c(0.1, 0.05,0.01,0.001)
           , star.char=c("+","*","**","***")
           , notes = c("<sup>+</sup>p<0.1  <sup>*</sup>p<0.05  <sup>**</sup>p<0.01  <sup>***</sup>p<0.001")
@@ -102,6 +104,7 @@ rep.mod2 = aggreg %>%
   )
 
 
+summary(rep.mod2)
 
 ### DELPHI
 rep.mod3 = aggreg %>%
@@ -127,11 +130,13 @@ rep.mod4 = aggreg %>%
     ,family="binomial"
   )
 
+
+
+
 summary(rep.mod1)
 summary(rep.mod2)
 summary(rep.mod3)
 summary(rep.mod4)
-
 
 stargazer::stargazer(rep.mod1, rep.mod2, rep.mod3, rep.mod4
                      , out="Figures/basic_test_replication.html", type="html"
@@ -139,9 +144,40 @@ stargazer::stargazer(rep.mod1, rep.mod2, rep.mod3, rep.mod4
                      , column.separate=c(2,2)
                      , dep.var.labels.include=F
                      , dep.var.caption="Binomial outcome:  mean closer to truth"
-                     , covariate.labels = c("<p>&phi;</p>","Stub./Acc. Corr.")
-                     , star.cutoffs=c(0.1, 0.05,0.01,0.001)
+                     , covariate.labels = c("<p>&phi;</p>","Stub./Err. Corr.")
+                     , star.cutoffs=c(0.1, 0.06,0.01,0.001)
                      , star.char=c("+","*","**","***")
-                     , notes = c("<sup>+</sup>p<0.1  <sup>*</sup>p<0.05  <sup>**</sup>p<0.01  <sup>***</sup>p<0.001")
+                     , notes = c("<sup>+</sup>p<0.06  <sup>*</sup>p<0.05  <sup>**</sup>p<0.01  <sup>***</sup>p<0.001")
                      , notes.append = F
 )
+
+
+
+### COMBINED
+aggreg %>%
+  ungroup %>%
+  subset(communication=="Delphi") %>%
+  glmer(
+    improve ~ 
+      prop_toward
+    + alpha_cor
+    + (1|task)
+    , data=.
+    ,family="binomial"
+  ) %>% summary
+
+
+
+
+aggreg %>%
+  ungroup %>%
+  subset(communication=="Discussion" & analysis=="replication") %>%
+  glmer(
+    improve ~ 
+      prop_toward
+    + alpha_cor
+    + (1|task)
+    , data=.
+    ,family="binomial"
+  ) %>% summary
+
